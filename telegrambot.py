@@ -167,9 +167,9 @@ class TelegramBot(object):
     def total_profits(bot, update):
         bot.send_chat_action(chat_id=update.message.chat_id, action=ChatAction.TYPING)
         end_amount = DataManager.execute_query(
-            "SELECT sum(end_amount) FROM c_operation WHERE run_id = ({})".format(querys.LAST_RUN_ID))[0]['sum']
+            "SELECT sum(end_amount) FROM c_instance WHERE run_id = ({})".format(querys.LAST_RUN_ID))[0]['sum']
         start_amount = DataManager.execute_query(
-            "SELECT sum(start_amount) FROM c_operation WHERE run_id = ({})".format(querys.LAST_RUN_ID))[0]['sum']
+            "SELECT sum(start_amount) FROM c_instance WHERE run_id = ({})".format(querys.LAST_RUN_ID))[0]['sum']
         profit = (end_amount - start_amount) * 100 / start_amount
         bot.send_message(chat_id=update.message.chat_id, text="Profit: %.8f (%.2f%%)" % ((end_amount - start_amount),
                                                                                          profit))
@@ -185,7 +185,7 @@ class TelegramBot(object):
         bot.send_chat_action(chat_id=update.message.chat_id, action=ChatAction.UPLOAD_DOCUMENT)
         run_id = DataManager.execute_query(querys.LAST_RUN_ID)[0]
         start_amount = DataManager.execute_query(
-            "SELECT sum(start_amount) FROM c_operation WHERE run_id = ({})".format(querys.LAST_RUN_ID))[0]['sum']
+            "SELECT sum(start_amount) FROM c_instance WHERE run_id = ({})".format(querys.LAST_RUN_ID))[0]['sum']
         cycles = DataManager.execute_query(
             "SELECT * FROM c_cycle WHERE status = 'COMPLETED' and run_id = ({}) ORDER BY ref_date".format(
                 querys.LAST_RUN_ID))
@@ -211,7 +211,7 @@ class TelegramBot(object):
     def profitpercoin(bot, update):
         bot.send_chat_action(chat_id=update.message.chat_id, action=ChatAction.TYPING)
         operations = DataManager.execute_query(
-            "SELECT * FROM c_operation WHERE run_id = ({})".format(querys.LAST_RUN_ID))
+            "SELECT * FROM c_instance WHERE run_id = ({})".format(querys.LAST_RUN_ID))
 
         msg = ""
         for op in operations:
