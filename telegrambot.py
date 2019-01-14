@@ -5,6 +5,8 @@ import common.helper as helper
 import subprocess
 import numpy as np
 import querys
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 import telegram
 
