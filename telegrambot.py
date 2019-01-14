@@ -1,6 +1,6 @@
 from telegram.ext import Updater, CommandHandler
 from telegram.chataction import ChatAction
-# from binance.client import Client
+from binance.client import Client
 import common.helper as helper
 import subprocess
 import numpy as np
@@ -38,8 +38,7 @@ class TelegramBot(object):
     dispatcher = updater.dispatcher
 
     def __init__(self):
-        # bin_cfg = load_config('cfg/binance.cfg')['keys'][0]
-        # self.client = Client(bin_cfg['key'], bin_cfg['secret'])
+        self.client = Client(None, None)
         config = helper.load_config('datasource.cfg')
         DataManager.host = config['host']
         DataManager.db = config['database']
@@ -52,116 +51,32 @@ class TelegramBot(object):
         self.updater.start_polling()
 
     def init_handlers(self):
-        help_handler = CommandHandler('help', self.help)
         start_handler = CommandHandler('start', self.start)
-        status_handler = CommandHandler('status', self.status)
-        torros_handler = CommandHandler('torros', self.torros)
-        hino_handler = CommandHandler('hino', self.hino)
-        meavisa_handler = CommandHandler('meavisadosciclosai', self.meavisadosciclosai)
-        paradeavisar_handler = CommandHandler('parademeavisarporra', self.parademeavisarporra)
         profits_handler = CommandHandler('profits', self.total_profits)
         runchart_handler = CommandHandler('runchart', self.runchart)
         profitpercoin_handler = CommandHandler('profitpercoin', self.profitpercoin)
         opchart_handler = CommandHandler('opchart', self.opchart, pass_args=True)
+        cycles_handler = CommandHandler('cycles', self.cycles)
+        overview_handler = CommandHandler('overview', self.overview)
+        details_handler = CommandHandler('details', self.details)
+        price_variation_handler = CommandHandler('pricevar', self.opchart, pass_args=True)
 
-        self.dispatcher.add_handler(help_handler)
         self.dispatcher.add_handler(start_handler)
-        self.dispatcher.add_handler(status_handler)
-        self.dispatcher.add_handler(torros_handler)
-        self.dispatcher.add_handler(hino_handler)
-        self.dispatcher.add_handler(meavisa_handler)
-        self.dispatcher.add_handler(paradeavisar_handler)
         self.dispatcher.add_handler(profits_handler)
         self.dispatcher.add_handler(runchart_handler)
         self.dispatcher.add_handler(profitpercoin_handler)
         self.dispatcher.add_handler(opchart_handler)
-
-    @staticmethod
-    def help(bot, update):
-        text = "/start AHHHHHHHHHHHHH\n/" + \
-               "status Status da cabra\n" + \
-               "/hino  Hino da cabra\n" + \
-               "/torros Balances retornado pela exchange\n" + \
-               "/profits Total profits da ultima run\n" + \
-               "/runchart Grafico dos torros da run atual\n" + \
-               "/meavisadosciclosai Se registra para receber info dos ciclos\n" + \
-               "/parademeavisarporra Se des-registra para receber info dos ciclos"
-
-        bot.send_message(chat_id=update.message.chat_id, text=text)
+        self.dispatcher.add_handler(cycles_handler)
+        self.dispatcher.add_handler(overview_handler)
+        self.dispatcher.add_handler(details_handler)
+        self.dispatcher.add_handler(price_variation_handler)
 
     @staticmethod
     def start(bot, update):
         bot.send_message(chat_id=update.message.chat_id, text="AHHHHHHHHHHHHH")
-
-        """
-            Shows an welcome message and help info about the available commands.
-        """
-        me = bot.get_me()
-
-        # Welcome message
-        msg = "Hello!\n"
-        msg += "I'm {0} and I came here to help you.\n".format(me.first_name)
-        msg += "What would you like to do?\n\n"
-        msg += "/support - Opens a new support ticket\n"
-        msg += "/settings - Settings of your account\n\n"
-
-        # Commands menu
-        main_menu_keyboard = [[telegram.KeyboardButton('/support')],
-                              [telegram.KeyboardButton('/settings')]]
-        reply_kb_markup = telegram.ReplyKeyboardMarkup(main_menu_keyboard,
-                                                       resize_keyboard=True,
-                                                       one_time_keyboard=True)
-
-        # Send the message with menu
-        bot.send_message(chat_id=update.message.chat_id,
-                         text=msg,
-                         reply_markup=reply_kb_markup)
-
-    @staticmethod
-    def status(bot, update):
-        bot.send_chat_action(chat_id=update.message.chat_id, action=ChatAction.UPLOAD_DOCUMENT)
-        process = subprocess.Popen("./integrations/telegram/scripts/checkCabra.sh", stdout=subprocess.PIPE)
-        process.communicate()
-
-        if process.returncode == 1:
-            with open("./integrations/telegram/assets/dormindo.jpg", 'rb') as file:
-                bot.send_photo(chat_id=update.message.chat_id, photo=file)
-        else:
-            with open("./integrations/telegram/assets/rodando.gif", 'rb') as file:
-                bot.send_document(chat_id=update.message.chat_id, document=file)
-
-    @staticmethod
-    def hino(bot, update):
-        bot.send_message(chat_id=update.message.chat_id, text="https://www.youtube.com/watch?v=oTDVRT6rDzE")
-
-    def torros(self, bot, update):
-        bot.send_chat_action(chat_id=update.message.chat_id, action=ChatAction.TYPING)
-        ret = self.client.get_account()
-        text = ""
-        for balance in ret['balances']:
-            asset = balance['asset']
-            amount = np.float64(balance['free']) + np.float64(balance['locked'])
-
-            if amount > 0.0:
-                text += '%s: %.8f\n' % (asset, amount.round(8))
-
-        bot.send_message(chat_id=update.message.chat_id, text=text)
-
-    @staticmethod
-    def meavisadosciclosai(bot, update):
-        bot.send_chat_action(chat_id=update.message.chat_id, action=ChatAction.TYPING)
-        chat = update.message.chat
-        user = TelegramPushUsers(chat.id, chat.first_name, chat.last_name, True)
-        DataManager.persist(user)
-        bot.send_message(chat_id=chat.id, text="OK!")
-
-    @staticmethod
-    def parademeavisarporra(bot, update):
-        bot.send_chat_action(chat_id=update.message.chat_id, action=ChatAction.TYPING)
         chat = update.message.chat
         user = TelegramPushUsers(chat.id, chat.first_name, chat.last_name, False)
         DataManager.persist(user)
-        bot.send_message(chat_id=chat.id, text="Nao vou te mandar mais nada então fdp!")
 
     @staticmethod
     def total_profits(bot, update):
@@ -225,7 +140,6 @@ class TelegramBot(object):
     @staticmethod
     def opchart(bot, update, args):
         bot.send_chat_action(chat_id=update.message.chat_id, action=ChatAction.UPLOAD_PHOTO)
-        print(args)
         symbol = args[0]
         run_id = DataManager.execute_query(querys.LAST_RUN_ID)[0]['run_id']
 
@@ -271,6 +185,47 @@ class TelegramBot(object):
             bot.send_photo(chat_id=update.message.chat_id, photo=file)
 
         plt.close()
+
+    def cycles(self, bot, update):
+        bot.send_chat_action(chat_id=update.message.chat_id, action=ChatAction.TYPING)
+        orders = DataManager.execute_query(querys.ACTIVE_CYCLES_BUY_ORDERS)
+        msg = ""
+        for order in orders:
+            last_price = np.float64(self.client.get_ticker(symbol=order['symbol'])['lastPrice'])
+            price = np.float64(order['price'])
+            msg += "%s (%.2f%%)\n" % (order['symbol'], (last_price - price) * 100 / price)
+
+        if msg:
+            bot.send_message(chat_id=update.message.chat_id, text=msg)
+        else:
+            bot.send_message(chat_id=update.message.chat_id, text="0 'ACTIVE' cycles.")
+
+    @staticmethod
+    def overview(bot, update):
+        bot.send_chat_action(chat_id=update.message.chat_id, action=ChatAction.TYPING)
+        data = DataManager.execute_query(querys.RUN_OVERVIEW)[0]
+        msg = "RUN OVERVIEW-------------------\n"
+
+        for key, value in data.items():
+            msg += "{}: {}\n".format(key, value)
+        bot.send_message(chat_id=update.message.chat_id, text=msg)
+
+    @staticmethod
+    def details(bot, update):
+        bot.send_chat_action(chat_id=update.message.chat_id, action=ChatAction.TYPING)
+        lines = DataManager.execute_query(querys.RUN_DETAILS)
+        msg = ""
+
+        for line in lines:
+            msg += "{} DETAILS -------------------\n".format(line['symbol'])
+            for key, value in line.items():
+                msg += "{}: {}\n".format(key, value)
+            msg += "\n"
+        bot.send_message(chat_id=update.message.chat_id, text=msg)
+
+    def price_variation(self, bot, update, args):
+        bot.send_chat_action(chat_id=update.message.chat_id, action=ChatAction.UPLOAD_PHOTO)
+        cycle_id = args[0]
 
 
 if __name__ == "__main__":
